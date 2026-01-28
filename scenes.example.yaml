@@ -1,0 +1,150 @@
+# 场景配置示例文件
+# 复制为 scenes.yaml 并根据实际需求修改
+
+# 环境配置 - 定义不同环境的 base_url
+environments:
+  dev:
+    base_url: "http://localhost:8080"
+  test:
+    base_url: "https://test-api.example.com"
+  staging:
+    base_url: "https://staging-api.example.com"
+  prod:
+    base_url: "https://api.example.com"
+
+# 单个场景定义
+scenes:
+  # 支付成功回调示例
+  payment-success:
+    name: "支付成功回调"
+    description: "模拟第三方支付成功通知"
+    url: "{{base_url}}/api/payment/notify"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+      X-Signature: "{{signature|default:mock-signature}}"
+    body: |
+      {
+        "orderId": "{{orderId}}",
+        "status": "SUCCESS",
+        "amount": {{amount}},
+        "paymentId": "PAY{{_timestamp_ms}}",
+        "timestamp": "{{_now}}"
+      }
+    defaults:
+      orderId: "ORD000"
+      amount: 9900
+
+  # 支付失败回调示例
+  payment-failed:
+    name: "支付失败回调"
+    description: "模拟第三方支付失败通知"
+    url: "{{base_url}}/api/payment/notify"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    body: |
+      {
+        "orderId": "{{orderId}}",
+        "status": "FAILED",
+        "errorCode": "{{errorCode|default:INSUFFICIENT_BALANCE}}",
+        "timestamp": "{{_now}}"
+      }
+    defaults:
+      orderId: "ORD000"
+
+  # 物流发货回调示例
+  logistics-shipped:
+    name: "物流发货回调"
+    description: "模拟物流公司发货通知"
+    url: "{{base_url}}/api/logistics/notify"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    body: |
+      {
+        "orderId": "{{orderId}}",
+        "trackingNo": "{{trackingNo|default:SF1234567890}}",
+        "carrier": "{{carrier|default:SF}}",
+        "status": "SHIPPED",
+        "timestamp": "{{_now}}"
+      }
+    defaults:
+      orderId: "ORD000"
+
+  # 物流签收回调示例
+  logistics-delivered:
+    name: "物流签收回调"
+    description: "模拟物流公司签收通知"
+    url: "{{base_url}}/api/logistics/notify"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    body: |
+      {
+        "orderId": "{{orderId}}",
+        "trackingNo": "{{trackingNo|default:SF1234567890}}",
+        "status": "DELIVERED",
+        "signedBy": "{{signedBy|default:本人签收}}",
+        "timestamp": "{{_now}}"
+      }
+    defaults:
+      orderId: "ORD000"
+
+  # 退款成功回调示例
+  refund-success:
+    name: "退款成功回调"
+    description: "模拟第三方支付退款成功通知"
+    url: "{{base_url}}/api/refund/notify"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    body: |
+      {
+        "orderId": "{{orderId}}",
+        "refundId": "REF{{_timestamp_ms}}",
+        "status": "SUCCESS",
+        "amount": {{refundAmount|default:9900}},
+        "timestamp": "{{_now}}"
+      }
+    defaults:
+      orderId: "ORD000"
+
+  # httpbin 测试场景 - 用于验证服务是否正常工作
+  httpbin-test:
+    name: "httpbin 测试"
+    description: "使用 httpbin.org 测试 HTTP 请求"
+    url: "https://httpbin.org/post"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+      X-Custom-Header: "{{customHeader|default:test-value}}"
+    body: |
+      {
+        "message": "{{message|default:Hello from callback-tool}}",
+        "timestamp": "{{_now}}"
+      }
+    defaults:
+      message: "Hello from callback-tool"
+
+# 批量场景定义 - 按顺序执行多个场景
+scenarios:
+  # 完整订单流程
+  full-order-flow:
+    name: "完整订单流程"
+    description: "模拟订单从支付到签收的完整流程"
+    steps:
+      - scene: payment-success
+        delay_after: 1.0
+      - scene: logistics-shipped
+        delay_after: 2.0
+      - scene: logistics-delivered
+
+  # 支付后退款流程
+  payment-refund-flow:
+    name: "支付后退款流程"
+    description: "模拟支付成功后用户申请退款"
+    steps:
+      - scene: payment-success
+        delay_after: 1.0
+      - scene: refund-success
