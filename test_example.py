@@ -79,6 +79,22 @@ class TestWhatsAppCallback:
         assert "预览测试" in result["request_body"]
         assert result["response_status"] is None  # dry_run 不实际发送
 
+    def test_dry_run_preview_with_sls_verify(self, callback):
+        """测试: dry_run 模式预览回调和 SLS 查询条件"""
+        result = callback.fire_and_verify(
+            "whatsapp-message",
+            env="online",
+            dry_run=True,
+            sender_wa_id="8613806691206",
+            message_body="预览测试",
+        )
+
+        assert result["success"] is True
+        assert "8613806691206" in result["callback"]["request_body"]
+        assert result["verification"]["project"] == "ycloud-k8s-service-online"
+        assert result["verification"]["logstore"] == "ycloud-attila-callback-root"
+        assert result["verification"]["query"] == "8613806691206"
+
 
 class TestCallbackIntegrationFlow:
     """

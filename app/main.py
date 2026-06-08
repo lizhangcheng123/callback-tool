@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import callback, scenario
+from app.api import callback, logs, scenario
 from app.services.scene_loader import scene_loader
 from app.config import config
 
@@ -45,6 +45,7 @@ app.add_middleware(
 
 # 注册路由
 app.include_router(callback.router)
+app.include_router(logs.router)
 app.include_router(scenario.router)
 
 
@@ -60,6 +61,8 @@ async def root():
             "scenes": "/api/scenes",
             "scenarios": "/api/scenarios",
             "callback": "/api/callback/{scene_id}",
+            "callback_verify": "/api/callback/{scene_id}/verify",
+            "logs_query": "/api/logs/query",
             "scenario": "/api/scenario/{scenario_id}",
             "reload": "/api/scenes/reload",
         }

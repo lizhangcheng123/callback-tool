@@ -71,6 +71,7 @@ class SceneLoader:
                 headers=scene_data.get("headers", {}),
                 body=scene_data.get("body", ""),
                 defaults=scene_data.get("defaults", {}),
+                verify=scene_data.get("verify"),
             )
 
         # 解析批量场景

@@ -79,6 +79,75 @@ class CallbackClient:
         resp.raise_for_status()
         return resp.json()
 
+    def fire_and_verify(
+        self,
+        scene_id: str,
+        env: str = None,
+        dry_run: bool = False,
+        **variables
+    ) -> dict:
+        """触发回调并查询 SLS 验证。
+
+        Args:
+            scene_id: 场景 ID，如 "whatsapp-message"
+            env: 目标环境
+            dry_run: True 则仅预览请求和查询条件
+            **variables: 场景变量，也可传 query/project/logstore 等覆盖验证配置
+        """
+        params = {}
+        if env:
+            params["env"] = env
+        if dry_run:
+            params["dry_run"] = "true"
+
+        verify_override_keys = {
+            "project",
+            "logstore",
+            "query",
+            "from_time",
+            "to_time",
+            "wait_seconds",
+            "max_results",
+        }
+        body = {}
+        for key, value in variables.items():
+            if key in verify_override_keys:
+                params[key] = value
+            else:
+                body[key] = value
+
+        resp = requests.post(
+            f"{self.base_url}/api/callback/{scene_id}/verify",
+            params=params,
+            json=body if body else None,
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    def query_logs(
+        self,
+        project: str,
+        logstore: str,
+        query: str,
+        from_time: str = "5 minutes ago",
+        to_time: str = "now",
+        max_results: int = 20,
+    ) -> dict:
+        """查询 SLS 日志。"""
+        resp = requests.post(
+            f"{self.base_url}/api/logs/query",
+            json={
+                "project": project,
+                "logstore": logstore,
+                "query": query,
+                "from_time": from_time,
+                "to_time": to_time,
+                "max_results": max_results,
+            },
+        )
+        resp.raise_for_status()
+        return resp.json()
+
     def list_scenes(self) -> list[dict]:
         """列出所有可用场景"""
         resp = requests.get(f"{self.base_url}/api/scenes")

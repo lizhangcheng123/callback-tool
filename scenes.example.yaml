@@ -7,6 +7,8 @@ environments:
     base_url: "http://localhost:8080"
   test:
     base_url: "https://test-api.example.com"
+    callback_base_url: "https://callback-test.ycloud.com"
+    sls_project: "ycloud-k8s-service-test"
   staging:
     base_url: "https://staging-api.example.com"
   prod:
@@ -126,6 +128,67 @@ scenes:
       }
     defaults:
       message: "Hello from callback-tool"
+
+  whatsapp-message:
+    name: "WhatsApp 消息回调"
+    description: "模拟 WhatsApp 用户发送消息，并在 SLS 中验证 callback 服务收到日志"
+    url: "{{callback_base_url|default:https://callback-test.ycloud.com}}/webhooks/attila/whatsapp/official/authen"
+    method: POST
+    headers:
+      Content-Type: "application/json"
+    body: |
+      {
+        "object": "whatsapp_business_account",
+        "entry": [
+          {
+            "id": "{{waba_id}}",
+            "changes": [
+              {
+                "value": {
+                  "messaging_product": "whatsapp",
+                  "metadata": {
+                    "display_phone_number": "{{display_phone_number}}",
+                    "phone_number_id": "{{phone_number_id}}"
+                  },
+                  "contacts": [
+                    {
+                      "profile": {"name": "{{sender_name}}"},
+                      "wa_id": "{{sender_wa_id}}"
+                    }
+                  ],
+                  "messages": [
+                    {
+                      "from": "{{sender_wa_id}}",
+                      "id": "wamid.TEST{{_timestamp_ms}}",
+                      "timestamp": "{{_timestamp}}",
+                      "text": {"body": "{{message_body}}"},
+                      "type": "text"
+                    }
+                  ]
+                },
+                "field": "messages"
+              }
+            ]
+          }
+        ]
+      }
+    defaults:
+      waba_id: "131397483397268"
+      display_phone_number: "8618362614551"
+      phone_number_id: "238039826068779"
+      sender_name: "测试用户"
+      sender_wa_id: "8613806691211"
+      message_body: "你好"
+    verify:
+      project: "{{sls_project|default:ycloud-k8s-service-test}}"
+      logstore: "ycloud-attila-callback-root"
+      query: "{{sender_wa_id}}"
+      from_time: "5 minutes ago"
+      to_time: "now"
+      endpoint: "ap-southeast-1.log.aliyuncs.com"
+      profile: "default"
+      max_results: 20
+      wait_seconds: 2
 
 # 批量场景定义 - 按顺序执行多个场景
 scenarios:
